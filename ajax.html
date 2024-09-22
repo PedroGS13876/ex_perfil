@@ -9,9 +9,14 @@
 <body>
     <header>
         <div class="container">
+            <input type="text" id="search-input" placeholder="Digite um nome de usuário no GitHub">
+            <button id="search-btn">Buscar</button>
+            <p id="error-msg" style="color:red; display: none;">Usuário não encontrado!</p>
+            
             <img class="profile-avatar" src="https://via.placeholder.com/180x180" id="avatar" alt=".">
             <h1 class="profile-name" id="name"></h1>
             <h2 class="profile-username" id="username"></h2>
+            <p class="profile-bio" id="bio"></p>
             <ul class="numbers">
                 <li class="numbers-item">
                     <h4>Repositórios</h4>
@@ -27,33 +32,88 @@
                 </li>
             </ul>
             <a href="#" id="link" class="profile-link">Ver no Github</a>
+
+            <h3>Repositórios Recentes</h3>
+            <ul id="repo-list"></ul>
         </div>
     </header>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-    const nameElement = document.querySelector('#name');
-    const usernameElement = document.querySelector('#username'); // Corrigido
-    const avatarElement = document.querySelector('#avatar');
-    const reposElement = document.querySelector('#repos');
-    const followersElement = document.querySelector('#followers');
-    const followingElement = document.querySelector('#following');
-    const linkElement = document.querySelector('#link');
+            const nameElement = document.querySelector('#name');
+            const usernameElement = document.querySelector('#username');
+            const avatarElement = document.querySelector('#avatar');
+            const reposElement = document.querySelector('#repos');
+            const followersElement = document.querySelector('#followers');
+            const followingElement = document.querySelector('#following');
+            const bioElement = document.querySelector('#bio');
+            const linkElement = document.querySelector('#link');
+            const repoListElement = document.querySelector('#repo-list');
+            const searchInput = document.querySelector('#search-input');
+            const searchBtn = document.querySelector('#search-btn');
+            const errorMsg = document.querySelector('#error-msg');
 
-    fetch('https://api.github.com/users/PedroGS13876')
-    .then(function(res) {
-        return res.json();
-    })
-    .then(function(json) {
-        nameElement.innerText = json.name;
-        usernameElement.innerText = json.login; // Agora vai funcionar corretamente
-        avatarElement.src = json.avatar_url;
-        followingElement.innerText = json.following;
-        followersElement.innerText = json.followers;
-        reposElement.innerText = json.public_repos;
-        linkElement.href = json.html_url;
-    })
-})
+            function fetchGitHubUser(username) {
+                fetch(`https://api.github.com/users/${username}`)
+                .then(function(res) {
+                    if (!res.ok) {
+                        throw new Error('Usuário não encontrado');
+                    }
+                    return res.json();
+                })
+                .then(function(json) {
+                    errorMsg.style.display = 'none';
+                    nameElement.innerText = json.name;
+                    usernameElement.innerText = json.login;
+                    avatarElement.src = json.avatar_url;
+                    followingElement.innerText = json.following;
+                    followersElement.innerText = json.followers;
+                    reposElement.innerText = json.public_repos;
+                    bioElement.innerText = json.bio ? json.bio : "Nenhuma biografia disponível.";
+                    linkElement.href = json.html_url;
+
+                    // Buscar repositórios
+                    fetchRepos(username);
+                })
+                .catch(function(error) {
+                    errorMsg.style.display = 'block';
+                    nameElement.innerText = '';
+                    usernameElement.innerText = '';
+                    avatarElement.src = 'https://via.placeholder.com/180x180';
+                    followingElement.innerText = '';
+                    followersElement.innerText = '';
+                    reposElement.innerText = '';
+                    bioElement.innerText = '';
+                    repoListElement.innerHTML = '';
+                });
+            }
+
+            function fetchRepos(username) {
+                fetch(`https://api.github.com/users/${username}/repos?sort=created&per_page=5`)
+                .then(function(res) {
+                    return res.json();
+                })
+                .then(function(repos) {
+                    repoListElement.innerHTML = '';
+                    repos.forEach(function(repo) {
+                        const li = document.createElement('li');
+                        li.innerHTML = `<a href="${repo.html_url}" target="_blank">${repo.name}</a>`;
+                        repoListElement.appendChild(li);
+                    });
+                });
+            }
+
+            // Buscar ao carregar a página
+            fetchGitHubUser('PedroGS13876');
+
+            // Função de busca ao clicar no botão
+            searchBtn.addEventListener('click', function() {
+                const username = searchInput.value.trim();
+                if (username) {
+                    fetchGitHubUser(username);
+                }
+            });
+        });
     </script>
 </body>
 </html>
